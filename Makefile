@@ -4,3 +4,5 @@ build:
 run: build
 	./.bin/projectx
 
+test:
+	go test -v ./...
