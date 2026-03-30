@@ -1,10 +1,12 @@
 package core
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"io"
 
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/Redcrops/web3_sever_with_go/types"
 )
 
 type Header struct {
@@ -43,11 +45,50 @@ func (h *Header) DecodeBinary(r io.Reader) error {
 	if err := binary.Read(r, binary.LittleEndian, &h.Height); err != nil {
 		return err
 	}
-	return binary.Read(r, binary.LittleEndian, &h.Version)
+	return binary.Read(r, binary.LittleEndian, &h.Nonce)
 
 }
 
 type Block struct {
 	Header
-	Trasaction []Trasaction
+	Trasactions []Trasaction
+	hash        types.Hash
+}
+
+func (b *Block) Hash() types.Hash {
+	buf := &bytes.Buffer{}
+	b.Header.EncodeBinary(buf)
+
+	if b.hash.IsZero() {
+		b.hash = types.Hash(sha256.Sum256(buf.Bytes()))
+	}
+	return b.hash
+}
+
+func (b *Block) EncodeBinary(w io.Writer) error {
+	if err := b.Header.EncodeBinary(w); err != nil {
+		return err
+	}
+
+	for _, tx := range b.Trasactions {
+		if err := tx.EncodeBinary(w); err != nil {
+			return err
+		}
+	}
+	return nil
+
+}
+
+func (b *Block) DecodeBinary(r io.Reader) error {
+	if err := b.Header.DecodeBinary(r); err != nil {
+		return err
+	}
+
+	for _, tx := range b.Trasactions {
+		if err := tx.DecodeBinary(r); err != nil {
+			return err
+		}
+	}
+	return nil
+
 }
